@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  avatar        String    @default("")
+  role          String    @default("member")
+  isActive      Boolean   @default(true)
+  lastLogin     DateTime?
+  emailVerified DateTime?
+  preferences   Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tasksCreated         Task[]         @relation("TaskCreator")
+  tasksAssigned        Task[]         @relation("TaskAssignee")
+  tasksUpdated         Task[]         @relation("TaskUpdater")
+  comments             Comment[]
+  activities           Activity[]
+  notificationsAsUser  Notification[] @relation("NotificationUser")
+  notificationsAsActor Notification[] @relation("NotificationActor")
+
+  @@map("users")
+}
+
+model Task {
+  id            String    @id @default(cuid())
+  title         String
+  description   String    @default("")
+  priority      String    @default("Medium")
+  status        String    @default("Todo")
+  dueDate       DateTime?
+  createdById   String
+  assignedToId  String
+  updatedById   String?
+  completedAt   DateTime?
+  archived      Boolean   @default(false)
+  activityCount Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  createdBy     User           @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  assignedTo    User           @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  updatedBy     User?          @relation("TaskUpdater", fields: [updatedById], references: [id])
+  comments      Comment[]
+  activities    Activity[]
+  notifications Notification[]
+
+  @@index([createdById, status])
+  @@index([createdById, archived])
+  @@index([assignedToId, status])
+  @@index([assignedToId, archived, status])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String    @default("assigned")
+  message   String
+  taskId    String?
+  actorId   String?
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user  User   @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  task  Task?  @relation(fields: [taskId], references: [id])
+  actor User?  @relation("NotificationActor", fields: [actorId], references: [id])
+
+  @@index([userId, isRead, createdAt])
+  @@index([taskId])
+  @@index([actorId])
+  @@map("notifications")
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  taskId    String
+  authorId  String
+  body      String
+  editedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+  @@index([authorId])
+  @@map("comments")
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  taskId    String
+  actorId   String
+  type      String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task  Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+  @@index([actorId])
+  @@map("activities")
+}
