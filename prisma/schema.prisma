@@ -30,9 +30,6 @@ model User {
   notificationsAsUser  Notification[] @relation("NotificationUser")
   notificationsAsActor Notification[] @relation("NotificationActor")
 
-  resetToken       String?   @unique
-  resetTokenExpiry DateTime?
-
   @@map("users")
 }
 

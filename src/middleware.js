@@ -12,6 +12,7 @@ const PROTECTED_PREFIXES = [
   "/assigned",
   "/kanban",
   "/settings",
+  "/admin",
 ];
 
 function isProtected(pathname) {
@@ -89,6 +90,10 @@ export async function middleware(request) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname + search);
       return NextResponse.redirect(loginUrl);
+    }
+    // Admin-only gate
+    if (pathname.startsWith("/admin") && token.role !== "admin") {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
