@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
@@ -69,7 +70,15 @@ export function LoginForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">Password</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Password</Label>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-muted-foreground hover:text-primary hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <div className="relative">
           <Input
             id="password"

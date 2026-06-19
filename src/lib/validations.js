@@ -34,6 +34,26 @@ export const taskSchema = z.object({
   assignedTo: z.string().min(1, "Please assign this task to someone"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Include at least one uppercase letter")
+      .regex(/[a-z]/, "Include at least one lowercase letter")
+      .regex(/[0-9]/, "Include at least one number"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export const commentSchema = z.object({
   body: z.string().trim().min(1, "Comment cannot be empty").max(2000),
 });
