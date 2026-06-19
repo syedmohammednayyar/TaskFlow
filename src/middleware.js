@@ -31,7 +31,7 @@ function buildCsp(nonce, isDev) {
     : `'self' 'nonce-${nonce}' 'strict-dynamic'`;
   const connectSrc = isDev ? `'self' ws: wss:` : `'self'`;
 
-  return [
+  const directives = [
     `default-src 'self'`,
     `script-src ${scriptSrc}`,
     // framer-motion / next inject inline styles; nonce-per-style isn't feasible.
@@ -43,11 +43,14 @@ function buildCsp(nonce, isDev) {
     `base-uri 'self'`,
     `form-action 'self'`,
     `object-src 'none'`,
-    `upgrade-insecure-requests`,
-  ].join("; ");
+  ];
+  // upgrade-insecure-requests must only run in production (HTTPS).
+  // In dev (HTTP), browsers would upgrade same-origin API calls to HTTPS, breaking them.
+  if (!isDev) directives.push(`upgrade-insecure-requests`);
+  return directives.join("; ");
 }
 
-function applySecurityHeaders(headers, csp) {
+function applySecurityHeaders(headers, csp, isDev) {
   headers.set("Content-Security-Policy", csp);
   headers.set("X-Frame-Options", "DENY");
   headers.set("X-Content-Type-Options", "nosniff");
@@ -56,10 +59,14 @@ function applySecurityHeaders(headers, csp) {
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(), browsing-topics=()"
   );
-  headers.set(
-    "Strict-Transport-Security",
-    "max-age=63072000; includeSubDomains; preload"
-  );
+  // HSTS must only be set in production — setting it on HTTP localhost
+  // causes browsers to permanently force HTTPS on localhost, breaking the dev server.
+  if (!isDev) {
+    headers.set(
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload"
+    );
+  }
 }
 
 export async function middleware(request) {
@@ -92,7 +99,7 @@ export async function middleware(request) {
   requestHeaders.set("Content-Security-Policy", csp);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
-  applySecurityHeaders(response.headers, csp);
+  applySecurityHeaders(response.headers, csp, isDev);
   return response;
 }
 
